@@ -2,7 +2,7 @@
 name: setup-email-to-case
 description: Build every Salesforce configuration and metadata component required to stand up one Email-to-Case mailbox, in dependency-safe order, from a single mailbox name.
 license: Proprietary
-user-invocable: true
+user-invocable: true 
 ---
 
 # Setup Email-to-Case Mailbox
