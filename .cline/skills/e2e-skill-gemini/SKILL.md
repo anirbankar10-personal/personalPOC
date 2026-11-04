@@ -1,124 +1,191 @@
----
 name: transcript-to-pr
-description: End-to-end workflow that parses a meeting transcript, creates a Linear issue, implements the code changes on a new branch, and opens a Pull Request.
+description: Interactive end-to-end workflow that prompts for a meeting transcript, creates a Linear issue, implements the code changes, creates a matching Git branch, and opens a matching Pull Request.
+user_invocable: true
+command: /transcript-to-pr
 triggers:
-  - "implement from transcript"
-  - "process meeting transcript"
-  - "transcript to PR"
+
+"/transcript-to-pr"
+
+"implement from transcript"
+
+"process meeting transcript"
+
+"transcript to PR"
 requires:
-  - linear-mcp-or-cli
-  - git-cli
-  - github-cli
 
-user-invocable: true 
----
+linear-mcp-or-cli
 
-# Skill: Meeting Transcript to Pull Request (`transcript-to-pr`)
+git-cli
 
-## Overview
+github-cli
 
-You are an autonomous software engineering agent operating inside VS Code. Your objective is to take an attached meeting transcript, extract the actionable engineering requirements, log a tracking issue in Linear, implement the solution in the codebase on a dedicated branch, and submit a Pull Request.
+Skill: Meeting Transcript to Pull Request (transcript-to-pr)
 
-## Prerequisites & Tooling Assumptions
+Overview
+
+You are an interactive, autonomous software engineering agent operating inside VS Code. This skill is user-invocable (via /transcript-to-pr or natural language triggers). Your objective is to prompt the user for a meeting transcript, extract actionable requirements, create a Linear issue, implement the code changes, create a branch, and open a Pull Request—ensuring that the Linear issue name, Git branch name, and PR title all match.
+
+Prerequisites & Tooling Assumptions
 
 Before starting, verify you have access to the following tools (via MCP servers, VS Code extensions, or terminal CLI):
 
-1. **Linear Integration:** Linear MCP server, Linear API, or Linear CLI (`linear`) to create issues and fetch team/project IDs.
-2. **Git:** Local git CLI for branch management and commits.
-3. **GitHub CLI (`gh`) or GitHub MCP:** For creating the Pull Request at the end of the workflow.
+Linear Integration: Linear MCP server, Linear API, or Linear CLI (linear) to create issues and fetch team/project IDs.
 
-## Execution Workflow
+Git: Local git CLI for branch management and commits.
 
-### Step 1: Analyze the Meeting Transcript
+GitHub CLI (gh) or GitHub MCP: For creating the Pull Request at the end of the workflow.
 
-1. Read the attached meeting transcript thoroughly.
-2. Extract the following key details:
-   * **Problem Statement / Context:** Why is this change needed based on the discussion?
-   * **Actionable Requirements:** Specific features, bug fixes, or refactoring tasks agreed upon.
-   * **Acceptance Criteria:** Explicit or implied conditions that must be met for the task to be considered complete.
-   * **Technical Constraints:** Any files, architectures, APIs, or edge cases mentioned during the call.
-3. *Self-Check:* If the transcript contains multiple unrelated epics or is critically ambiguous about what needs to be built, pause and ask the user to clarify which specific task to tackle first before proceeding.
+Execution Workflow
 
-### Step 2: Create a Linear Issue
+Follow these steps strictly in order. Do not skip ahead.
 
-1. Using your Linear tool (MCP or CLI), identify the target **Team** (and optionally **Project** or **Assignee**). If multiple teams exist and none is specified in workspace rules, ask the user or default to the primary engineering team.
-2. Draft and create the Linear issue with the following structure:
-   * **Title:** Concise, action-oriented summary (e.g., `feat: Add rate limiting to user authentication endpoint`).
-   * **Description:**
-     ```markdown
-     ## Context (From Meeting Transcript)
-     [Brief summary of the discussion and motivation]
-     
-     ## Requirements
-     - [Requirement 1]
-     - [Requirement 2]
-     
-     ## Acceptance Criteria
-     - [ ] [Criterion 1]
-     - [ ] [Criterion 2]
-     
-     ## Technical Notes
-     [Any specific pointers, architectural notes, or edge cases mentioned in the transcript]
-     ```
-3. Capture the returned **Issue Identifier** (e.g., `ENG-123`) and **Issue URL**. Display this to the user before moving to Step 3.
+Step 1: Prompt for Transcript Upload (Upon Invocation)
 
-### Step 3: Create a New Branch & Implement Changes
+When the user invokes this skill, check if a meeting transcript file is already attached or provided in the current message.
 
-1. **Sync Repository:**
-   * Ensure the working directory is clean (`git status`). If there are uncommitted changes, ask the user whether to stash them.
-   * Checkout the default base branch (usually `main` or `master`) and pull the latest changes (`git pull origin main`).
-2. **Create Feature Branch:**
-   * Create and checkout a new branch named using the Linear Issue ID:
-     ```bash
-     git checkout -b <type>/<linear-issue-id>-<short-kebab-description>
-     # Example: git checkout -b feat/eng-123-auth-rate-limiting
-     ```
-3. **Code Implementation:**
-   * Search the workspace to locate relevant files, components, and tests.
-   * Implement the changes systematically according to the requirements and acceptance criteria extracted in Step 1.
-   * Follow the existing code style, linting rules, and architectural patterns of the repository.
-4. **Verification:**
-   * Run relevant unit/integration tests, type checks, and linters via the terminal to ensure your changes do not break existing functionality.
-   * Add or update tests covering the new changes if applicable.
+If no transcript is attached: Immediately pause and prompt the user:
 
-### Step 4: Commit & Create a Pull Request
+"Please upload or attach the meeting transcript file (or provide its file path in the workspace) so we can get started."
 
-1. **Stage & Commit:**
-   * Stage only the files relevant to the task (`git add <files>`).
-   * Commit the changes using Conventional Commits format, referencing the Linear issue:
-     ```bash
-     git commit -m "feat(scope): short description [ENG-123]"
-     ```
-2. **Push Branch:**
-   * Push the branch to the remote repository:
-     ```bash
-     git push -u origin <branch-name>
-     ```
-3. **Open Pull Request:**
-   * Use the GitHub CLI (`gh pr create`) or GitHub MCP tool to open a Pull Request against the base branch:
-     * **PR Title:** `[ENG-123] <Title of the change>`
-     * **PR Body:**
-       ```markdown
-       ## Summary
-       Implements the requirements discussed in the attached meeting transcript.
-       
-       **Linear Issue:** Fixes ENG-123 ([Link to Linear Issue])
-       
-       ## Changes Made
-       - [Bullet list of key code changes]
-       
-       ## How to Test
-       - [Steps to verify the changes locally or via automated tests]
-       ```
-4. **Final Output:**
-   * Present a concise summary to the user containing:
-     * The **Linear Issue Link**
-     * The **Branch Name**
-     * A summary of **Modified Files**
-     * The **Pull Request Link**
+Wait for the user to upload/attach the file before proceeding to Step 2.
 
-## Guardrails & Best Practices
+Step 2: Read Transcript & Create Linear Issue
 
-* **Never force push (`git push --force`)** or push directly to `main`/`master`.
-* **Secrets & Credentials:** Never hardcode API keys, tokens, or sensitive data mentioned in a transcript into the codebase.
-* **Ambiguity Handling:** If a transcript discusses a tentative idea without a clear decision (e.g., *"Maybe we should use Redis, let's check tomorrow"*), note it as an open question in the Linear issue and confirm with the user before writing the code.
+Read & Analyze: Read the uploaded meeting transcript thoroughly and extract:
+
+Problem Statement / Context: Why is this change needed based on the discussion?
+
+Actionable Requirements: Specific features, bug fixes, or refactoring tasks agreed upon.
+
+Acceptance Criteria: Explicit or implied conditions that must be met for completion.
+
+Technical Constraints: Any files, architectures, APIs, or edge cases mentioned.
+
+(Self-Check: If the transcript is critically ambiguous, ask the user for clarification before creating the issue.)
+
+Create the Linear Issue:
+
+Identify the target Linear Team (ask the user if multiple teams exist and no default is configured).
+
+Define a clean, concise Issue Title (e.g., Add rate limiting to user authentication endpoint). Save this exact title, as it must match the branch and PR later.
+
+Create the issue in Linear with the following description template:
+
+## Context (From Meeting Transcript)
+[Brief summary of the discussion and motivation]
+
+## Requirements
+- [Requirement 1]
+- [Requirement 2]
+
+## Acceptance Criteria
+- [ ] [Criterion 1]
+- [ ] [Criterion 2]
+
+## Technical Notes
+[Any specific pointers, architectural notes, or edge cases mentioned in the transcript]
+
+
+Capture Identifiers:
+
+Record the returned Linear Issue ID (e.g., ENG-123), the Exact Issue Title, and the Linear Issue URL.
+
+Inform the user that the Linear issue has been created and you are now starting the code implementation.
+
+Step 3: Implement the Code Changes
+
+Workspace Preparation:
+
+Ensure your base working state is up to date with the default branch (main or master) before modifying files.
+
+Code Implementation:
+
+Search the workspace to locate relevant files, components, and tests.
+
+Implement the required code changes directly in the workspace according to the requirements and acceptance criteria from the Linear issue.
+
+Adhere strictly to existing code styles, linting rules, and architectural patterns.
+
+Verification:
+
+Run relevant unit/integration tests, type checks, and linters via the terminal to verify that your changes work as expected and do not introduce regressions.
+
+Add or update tests covering the new changes if applicable.
+
+Step 4: Create a Matching Git Branch
+
+Once the code changes are implemented and verified in the working tree, create and switch to a new Git branch.
+
+Strict Naming Convention: The branch name must match the Linear Issue ID and the slugified (kebab-case) Linear Issue Title:
+
+Format: <linear-issue-id>-<kebab-case-linear-issue-title> (or if Linear provides a gitBranchName property, use that exact string).
+
+Example: If the Linear issue is ENG-123 and the title is Add rate limiting to user authentication endpoint, the branch name must be:
+
+git checkout -b eng-123-add-rate-limiting-to-user-authentication-endpoint
+
+
+Verify that all your modified and newly created files are carried over cleanly onto this new branch (git status).
+
+Step 5: Commit, Push & Create a Matching Pull Request
+
+Stage & Commit:
+
+Stage all relevant modified/created files (git add <files>).
+
+Commit the changes using the exact Linear Issue ID and Linear Issue Title:
+
+git commit -m "ENG-123: Add rate limiting to user authentication endpoint"
+
+
+Push Branch:
+
+Push the newly created branch to the remote repository:
+
+git push -u origin <branch-name>
+
+
+Create the Pull Request:
+
+Use the GitHub CLI (gh pr create) or GitHub MCP tool to open a Pull Request against the base branch (main/master).
+
+Strict Naming Alignment: The PR Title must match the Linear Issue ID + Linear Issue Title (and correspond directly to the branch name):
+
+PR Title Format: [<Linear-Issue-ID>] <Exact Linear Issue Title>
+
+Example: [ENG-123] Add rate limiting to user authentication endpoint
+
+PR Body Template:
+
+## Summary
+Implements the requirements discussed in the uploaded meeting transcript.
+
+**Linear Issue:** Fixes ENG-123 ([ENG-123: Add rate limiting to user authentication endpoint](<Linear-Issue-URL>))
+**Branch:** `<branch-name>`
+
+## Changes Made
+- [Bullet list of key code changes]
+
+## How to Test
+- [Steps to verify the changes locally or via automated tests]
+
+
+Final Summary Output:
+
+Present a clear completion summary to the user showing the aligned names and links:
+
+Linear Issue: [ENG-123] <Linear Issue Title> ([Link])
+
+Git Branch: <branch-name>
+
+Pull Request: [ENG-123] <Linear Issue Title> ([Link])
+
+Modified Files: Brief list of changed files.
+
+Guardrails & Best Practices
+
+Strict Name Matching: Double-check that the Linear Issue Title, the Git Branch slug, and the Pull Request Title all use the exact same naming so Linear's GitHub automation links them automatically.
+
+Never force push (git push --force) or push commits directly to main/master.
+
+Secrets & Credentials: Never hardcode API keys, tokens, or sensitive data mentioned in a transcript into the codebase.
