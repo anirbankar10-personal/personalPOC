@@ -1,0 +1,7 @@
+{
+  "skills": {
+    "enabled": true,
+    "directory": ".cline/skills",
+    "scanOnStartup": true
+  }
+}

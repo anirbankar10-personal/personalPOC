@@ -1,0 +1,2 @@
+﻿C:\sfdx\personalPOC\force-app\main\default\classes\apexSample.cls
+C:\sfdx\personalPOC\force-app\main\default\classes\apexSample.cls-meta.xml
